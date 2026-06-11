@@ -677,3 +677,13 @@
 
 (defn -main [& args]
   (into empty-deque (range)))
+
+(comment
+
+(let [x (reduce conj empty-deque (range 1e6))]
+  (time (last x))        ;; slow ~1 second
+  (time (proto/last x))  ;; fast <1 millisecond
+  (time (last x))
+  (time (proto/last x)))
+
+)
