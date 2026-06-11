@@ -636,7 +636,7 @@
   (next [this] nil)
   (more [this] this)
   Sequential
-  List
+  #_List
   Serializable
   IHashEq
   (hasheq [this])
