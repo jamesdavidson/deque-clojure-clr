@@ -11,3 +11,6 @@
    : 
    : This Source Code Form is "Incompatible With Secondary Licenses",
    : as defined by the Mozilla Public License, v. 2.0.
+** Usage
+  With deps.edn tooling
+   : {:deps {io.github.jamesdavidson/deque-clojure-clr {:git/tag "v0.0.1" :git/sha "d3d77fa9"}}}
