@@ -14,8 +14,10 @@
   (:import (clojure.lang Counted IHashEq IMeta IObj IPersistentCollection
                          IPersistentList IPersistentStack ISeq Indexed Seqable
                          Sequential)
-           (java.io Serializable)
-           (java.util Arrays List))
+           #?@(:clj [(java.io Serializable)
+                     (java.util Arrays List)]
+               :cljr [(System Array)
+                      (System.Collections IList)]))
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -153,29 +155,40 @@
         (assert (semiregular? deque true))
         true)))
 
+(def ^:private array-copy
+  #?(:clj System/arraycopy
+     :cljr Array/Copy))
+
+(def ^:private arrays-copy-of
+  #?(:clj Arrays/copyOf
+     :cljr (fn [^objects this n]
+             (let [dst (object-array n)]
+               (Array/Copy this 0 dst 0 (min (alength this) n))
+               dst))))
+
 (defn array-slice [array ^long start ^long end]
   (let [a (object-array (- end start))]
-    (System/arraycopy array start a 0 (- end start))
+    (array-copy array start a 0 (- end start))
     a))
 
 (defn array-pop [^objects this]
   (let [dst (object-array (dec (alength this)))]
-    (System/arraycopy this 1 dst 0 (alength dst))
+    (array-copy this 1 dst 0 (alength dst))
     dst))
 
 (defn array-push [^objects this value]
   (let [dst (object-array (inc (alength this)))]
-    (System/arraycopy this 0 dst 1 (alength this))
+    (array-copy this 0 dst 1 (alength this))
     (aset dst 0 value)
     dst))
 
 (defn array-inject [^objects this value]
-  (let [dst (Arrays/copyOf this (inc (alength this)))]
+  (let [dst (arrays-copy-of this (inc (alength this)))]
     (aset dst (alength this) value)
     dst))
 
 (defn array-eject [^objects this]
-  (Arrays/copyOf this (dec (alength this))))
+  (arrays-copy-of this (dec (alength this))))
 
 (defn array-last [^objects this]
   (aget this (dec (alength this))))
@@ -207,7 +220,7 @@
 
         [pi pi1]
         (if (<= (alength pi) 1)
-          [(let [v (Arrays/copyOf pi (+ (alength pi) 2))
+          [(let [v (arrays-copy-of pi (+ (alength pi) 2))
                  first ^objects (aget pi1 0)]
              (aset v (alength pi) (aget first 0))
              (aset v (inc (alength pi)) (aget first 1))
@@ -221,7 +234,7 @@
                  last ^objects (array-last si1)]
              (aset v 0 (aget last 0))
              (aset v 1 (aget last 1))
-             (System/arraycopy si 0 v 2 (alength si))
+             (array-copy si 0 v 2 (alength si))
              v)
            (array-eject si1)]
           [si si1])]
@@ -248,7 +261,7 @@
 
         [pi pi1]
         (if (<= (alength pi) 1)
-          [(let [v (Arrays/copyOf pi (+ (alength pi) 2))
+          [(let [v (arrays-copy-of pi (+ (alength pi) 2))
                  first ^objects (aget pi1 0)]
              (aset v (alength pi) (aget first 0))
              (aset v (inc (alength pi)) (aget first 1))
@@ -262,7 +275,7 @@
                  last ^objects (array-last pi1)]
              (aset v 0 (aget last 0))
              (aset v 1 (aget last 1))
-             (System/arraycopy si 0 v 2 (alength si))
+             (array-copy si 0 v 2 (alength si))
              v)
            (array-eject pi1)]
           [si pi1])]
@@ -271,7 +284,7 @@
 (defn no-buffer-case [^objects pi ^objects pi1 ^objects si1 ^objects si]
   (let [[^objects pi pi1]
         (if (= (alength pi1) 1)
-          [(let [v (Arrays/copyOf pi (+ (alength pi) 2))
+          [(let [v (arrays-copy-of pi (+ (alength pi) 2))
                  first ^objects (aget pi1 0)]
              (aset v (alength pi) (aget first 0))
              (aset v (inc (alength pi)) (aget first 1))
@@ -281,7 +294,7 @@
 
         [pi si1]
         (if (= (alength si1) 1)
-          [(let [v (Arrays/copyOf pi (+ (alength pi) 2))
+          [(let [v (arrays-copy-of pi (+ (alength pi) 2))
                  first ^objects (aget si1 0)]
              (aset v (alength pi) (aget first 0))
              (aset v (inc (alength pi)) (aget first 1))
@@ -540,7 +553,9 @@
     (if (identical? empty-deque this)
       0
       (deque-count this 0)))
-  (cons [this v]
+  (#?(:clj cons
+      :cljr ^clojure.lang.IPersistentCollection cons)
+    [this v]
     (if (and (zero? (alength prefix))
              (identical? empty-deque child)
              (identical? empty-deque substack))
@@ -559,7 +574,7 @@
   (more [this] (pop this))
   Sequential
   #_List
-  Serializable
+  #?(:clj Serializable)
   IHashEq
   (hasheq [this])
   IPersistentStack
@@ -628,7 +643,10 @@
   (seq [this] nil)
   IPersistentCollection
   (count [this])
-  (cons [this v] (persistent-deque empty-buffer (array-push empty-buffer v)))
+  (#?(:clj cons
+      :cljr ^clojure.lang.IPersistentCollection cons)
+    [this v]
+    (persistent-deque empty-buffer (array-push empty-buffer v)))
   (empty [this] empty-deque)
   (equiv [this other])
   ISeq
@@ -637,7 +655,7 @@
   (more [this] this)
   Sequential
   #_List
-  Serializable
+  #?(:clj Serializable)
   IHashEq
   (hasheq [this])
   IPersistentStack
