@@ -10,8 +10,7 @@
 (ns name.stadig.deque.protocol
   (:refer-clojure :exclude [first push last])
   (:require [clojure.core :as clj])
-  (:import (clojure.lang Seqable)
-           (java.util Arrays)))
+  (:import (clojure.lang Seqable)))
 
 (defprotocol IDeque
   (last [d])
